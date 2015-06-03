@@ -1,6 +1,48 @@
 #!/usr/bin/perl
 #
 #
+#    Parsing program for Nagios Object Cache files
+#    Copyright (C) 2015  R. Sean McAdam
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License along
+#    with this program; if not, write to the Free Software Foundation, Inc.,
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+#
+
+=head1 NAME
+
+NagiosObjectCacheParser - Parses the Nagios Object Cache files
+
+=head1 DESCRIPTION
+
+This program monitors the Nagios Cache files, and reparses them when either the object or status files are updated. The module can return individual values and lists of values from the Nagiosn, as well as a JSON formatted list of the whole data set.  Anytime a request is made to an instance of the NOCP object the cache files are checked and reparsed if needed.
+
+=head1 EXAMPLE
+
+	use NagiosObjectCacheParser;
+	my $nocp = new NagiosObjectCacheParser ({
+		$NAGIOS_STAT_FILE => '~/nagios.status.dat', 
+		$NAGIOS_OBJ_FILE => '~/nagios.objects.cache', 
+	};
+	
+	# Turn on JSON sorting
+	$nocp->sort_json(1);
+	
+	# Print a JSON formatted output
+	print $nocp->get_pretty_json;
+
+=cut
 
 package NagiosObjectCacheParser;
 
@@ -1062,9 +1104,20 @@ our @EXPORT = qw(
 my $nagios_status_filename = '/dev/shm/nagios.status.dat';
 my $nagios_object_filename = '/dev/shm/nagios.objects.cache';
 
+=head1 METHODS
+
+=cut
+
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp = new()
+
+Create a new NOCP object
+
+=cut
+
 sub new {
     my ( $class, $parmref ) = @_;
     my $self = {
@@ -1112,6 +1165,13 @@ sub new {
 # -------------------------------------------------------------
 # Set JSON sort option (consumes lots of CPU)
 # -------------------------------------------------------------
+
+=head2 $nocp->sort_json()
+
+Sets the JSON sort option on or off 
+
+=cut
+
 sub sort_json {
     my ( $self, $sort ) = @_;
     $sort = ( defined $sort && $sort ) ? 1 : 0;
@@ -1121,6 +1181,13 @@ sub sort_json {
 # -------------------------------------------------------------
 # Get JSON output of all NAGIOS data
 # -------------------------------------------------------------
+
+=head2 $nocp->get_json()
+
+Returns a sorted JSON text structure of all of the Nagios object and status data
+
+=cut
+
 sub get_json {
     my ($self) = @_;
     $self->update();
@@ -1130,6 +1197,13 @@ sub get_json {
 # -------------------------------------------------------------
 # Get pretty JSON output of all NAGIOS data
 # -------------------------------------------------------------
+
+=head2 $nocp->get_pretty_json()
+
+Returns a "pretty" sorted JSON text structure of all of the Nagios object and status data
+
+=cut
+
 sub get_pretty_json {
     my ($self) = @_;
     $self->update();
@@ -1139,6 +1213,13 @@ sub get_pretty_json {
 # -------------------------------------------------------------
 # Update cached data strucs if either files have been updated
 # -------------------------------------------------------------
+
+=head2 $nocp->update()
+
+Call the update routine that will reparse the cache files if needed
+
+=cut
+
 sub update {
     my ($self) = @_;
     $self->_update_object_file() || $self->_update_status_file();
@@ -1147,6 +1228,13 @@ sub update {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_commands()
+
+Returns a list of the Nagios configured "commands"
+
+=cut
+
 sub get_commands {
     my ($self) = @_;
     $self->_get_table_keys($COMMAND);
@@ -1155,15 +1243,29 @@ sub get_commands {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_command_value()
+
+Returns a value for the specific "command" name
+
+=cut
+
 sub get_command_value {
-    my ( $self, $command, $value ) = @_;
-    __verify_value($value);
-    $self->_get_table_key_value( $COMMAND, $command, $value );
+    my ( $self, $command, $name ) = @_;
+    __verify_value_name($name);
+    $self->_get_table_key_value( $COMMAND, $command, $name );
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_contacts()
+
+Returns a list of "contact" names
+
+=cut
+
 sub get_contacts {
     my ($self) = @_;
     $self->_get_table_keys($CONTACT);
@@ -1172,15 +1274,29 @@ sub get_contacts {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_contact_value()
+
+Returns a value for the specific "contact" name
+
+=cut
+
 sub get_contact_value {
-    my ( $self, $contact, $value ) = @_;
-    __verify_value($value);
-    $self->_get_table_key_value( $CONTACT, $contact, $value );
+    my ( $self, $contact, $name ) = @_;
+    __verify_value_name($name);
+    $self->_get_table_key_value( $CONTACT, $contact, $name );
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_contactgroups()
+
+Returns a list of "contactgroup" names
+
+=cut
+
 sub get_contactgroups {
     my ($self) = @_;
     $self->_get_table_keys($CONTACTGROUP);
@@ -1189,15 +1305,29 @@ sub get_contactgroups {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_contactgroup_value()
+
+Returns a value for the specific "contactgroup" name
+
+=cut
+
 sub get_contactgroup_value {
-    my ( $self, $group, $value ) = @_;
-    __verify_value($value);
-    $self->_get_table_key_value( $CONTACTGROUP, $group, $value );
+    my ( $self, $group, $name ) = @_;
+    __verify_value_name($name);
+    $self->_get_table_key_value( $CONTACTGROUP, $group, $name );
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_hosts()
+
+Returns a list "host" names
+
+=cut
+
 sub get_hosts {
     my ($self) = @_;
     $self->_get_table_keys($HOST);
@@ -1206,17 +1336,31 @@ sub get_hosts {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_host_value()
+
+Returns a value for the specific "host" name
+
+=cut
+
 sub get_host_value {
-    my ( $self, $host, $value ) = @_;
-    __verify_value($value);
+    my ( $self, $host, $name ) = @_;
+    __verify_value_name($name);
     if ( $self->_verify_host($host) ) {
-        $self->_get_table_key_value( $HOST, $host, $value );
+        $self->_get_table_key_value( $HOST, $host, $name );
     }
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_hostcomments()
+
+Returns a list "hostcomments" names
+
+=cut
+
 sub get_hostcomments {
     my ($self) = @_;
     $self->_get_table_keys($HOSTCOMMENT);
@@ -1225,17 +1369,31 @@ sub get_hostcomments {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_host_hostcomment_value()
+
+Returns a value for the specific "hostcomment" name
+
+=cut
+
 sub get_host_hostcomment_value {
-    my ( $self, $host, $value ) = @_;
-    __verify_value($value);
+    my ( $self, $host, $name ) = @_;
+    __verify_value_name($name);
     if ( $self->_verify_host($host) ) {
-        $self->_get_table_key_value( $HOSTCOMMENT, $host, $value );
+        $self->_get_table_key_value( $HOSTCOMMENT, $host, $name );
     }
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->hostgroups()
+
+Returns a list "hostgroup" names
+
+=cut
+
 sub get_hostgroups {
     my ($self) = @_;
     $self->_get_table_keys($HOSTGROUP);
@@ -1244,15 +1402,29 @@ sub get_hostgroups {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_hostgroup_value()
+
+Returns a value for the specific "hostgroup" name
+
+=cut
+
 sub get_hostgroup_value {
-    my ( $self, $hostgroup, $value ) = @_;
-    __verify_value($value);
-    $self->_get_table_key_value( $HOSTGROUP, $hostgroup, $value );
+    my ( $self, $hostgroup, $name ) = @_;
+    __verify_value_name($name);
+    $self->_get_table_key_value( $HOSTGROUP, $hostgroup, $name );
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_hoststatus()
+
+Returns a list "hoststatus" names
+
+=cut
+
 sub get_hoststatuses {
     my ($self) = @_;
     $self->_get_table_keys($HOSTSTATUS);
@@ -1261,17 +1433,31 @@ sub get_hoststatuses {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_host_hoststatus_value()
+
+Returns a value for the specific "hoststatus" name
+
+=cut
+
 sub get_host_hoststatus_value {
-    my ( $self, $host, $value ) = @_;
-    __verify_value($value);
+    my ( $self, $host, $name ) = @_;
+    __verify_value_name($name);
     if ( $self->_verify_host($host) ) {
-        $self->_get_table_key_key_value( $HOSTSTATUS, $host, $value );
+        $self->_get_table_key_key_value( $HOSTSTATUS, $host, $name );
     }
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_hostservices()
+
+Returns a list "hostservice" names
+
+=cut
+
 sub get_hostservices {
     my ($self) = @_;
     $self->_get_table_keys($SERVICE);
@@ -1280,17 +1466,31 @@ sub get_hostservices {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_host_hostservice_value()
+
+Returns a value for the specific "hostservice" name
+
+=cut
+
 sub get_host_hostservice_value {
-    my ( $self, $host, $service, $value ) = @_;
-    __verify_value($value);
+    my ( $self, $host, $service, $name ) = @_;
+    __verify_value_name($name);
     if ( $self->_verify_host($host) ) {
-        $self->_get_table_key_key_value( $SERVICE, $service, $host, $value );
+        $self->_get_table_key_key_value( $SERVICE, $service, $host, $name );
     }
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_hostservicecomments()
+
+Returns a list "hostservicecomment" names
+
+=cut
+
 sub get_hostservicecomments {
     my ($self) = @_;
     $self->_get_table_keys($SERVICECOMMENT);
@@ -1299,17 +1499,31 @@ sub get_hostservicecomments {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_host_hostservicecomment_value()
+
+Returns a value for the specific "hostservicecomment" name
+
+=cut
+
 sub get_host_hostservicecomment_value {
-    my ( $self, $host, $servicecomment, $value ) = @_;
-    __verify_value($value);
+    my ( $self, $host, $servicecomment, $name ) = @_;
+    __verify_value_name($name);
     if ( $self->_verify_host($host) ) {
-        $self->_get_table_key_key_value( $SERVICECOMMENT, $servicecomment, $host, $value );
+        $self->_get_table_key_key_value( $SERVICECOMMENT, $servicecomment, $host, $name );
     }
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->servicegroups()
+
+Returns a list "servicegroup" names
+
+=cut
+
 sub get_servicegroups {
     my ($self) = @_;
     $self->_get_table_keys($SERVICEGROUP);
@@ -1318,15 +1532,29 @@ sub get_servicegroups {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_servicegroup_value()
+
+Returns a value for the specific "servicegroup" name
+
+=cut
+
 sub get_servicegroup_value {
-    my ( $self, $servicegroup, $value ) = @_;
-    __verify_value($value);
-    $self->_get_table_key_value( $SERVICEGROUP, $servicegroup, $value );
+    my ( $self, $servicegroup, $name ) = @_;
+    __verify_value_name($name);
+    $self->_get_table_key_value( $SERVICEGROUP, $servicegroup, $name );
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->hostservicestatus()
+
+Returns a list "hostservicestatus" names
+
+=cut
+
 sub get_hostservicestatuses {
     my ($self) = @_;
     $self->_get_table_keys($SERVICESTATUS);
@@ -1335,17 +1563,31 @@ sub get_hostservicestatuses {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_host_hostservicestatuses_value()
+
+Returns a value for the specific "hostservicestatus" name
+
+=cut
+
 sub get_host_hostservicestatuses_value {
-    my ( $self, $host, $servicestatus, $value ) = @_;
-    __verify_value($value);
+    my ( $self, $host, $servicestatus, $name ) = @_;
+    __verify_value_name($name);
     if ( $self->_verify_host($host) ) {
-        $self->_get_table_key_key_value( $SERVICESTATUS, $servicestatus, $host, $value );
+        $self->_get_table_key_key_value( $SERVICESTATUS, $servicestatus, $host, $name );
     }
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_timeperiods()
+
+Returns a list "timeperiod" names
+
+=cut
+
 sub get_timepreiods {
     my ($self) = @_;
     $self->_get_table_keys($TIMEPERIOD);
@@ -1354,31 +1596,38 @@ sub get_timepreiods {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
+
+=head2 $nocp->get_timeperiod_value()
+
+Returns a value for the specific "timeperiod" name
+
+=cut
+
 sub get_timeperiod_value {
-    my ( $self, $timeperiod, $value ) = @_;
-    __verify_value($value);
-    $self->_get_table_key_value( $TIMEPERIOD, $timeperiod, $value );
+    my ( $self, $timeperiod, $name ) = @_;
+    __verify_value_name($name);
+    $self->_get_table_key_value( $TIMEPERIOD, $timeperiod, $name );
 }
 
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
 sub _get_table_key_key_value {
-    my ( $self, $table, $key1, $key2, $value ) = @_;
+    my ( $self, $table, $key1, $key2, $name ) = @_;
     my $ret = undef;
 
     confess if !defined $table;
     confess if !defined $TABLES{$table};
     confess if !defined $key1;
     confess if !defined $key2;
-    __verify_value($value);
+    __verify_value_name($name);
 
     if ( defined $self->{$table}
         && defined $self->{$table}->{$key1}
         && defined $self->{$table}->{$key1}->{$key2}
-        && defined $self->{$table}->{$key1}->{$key2}->{$value}
+        && defined $self->{$table}->{$key1}->{$key2}->{$name}
       ) {
-        $ret = $self->{$table}->{$key1}->{$key2}->{$value};
+        $ret = $self->{$table}->{$key1}->{$key2}->{$name};
     }
 
     $ret;
@@ -1388,19 +1637,19 @@ sub _get_table_key_key_value {
 #
 # -------------------------------------------------------------
 sub _get_table_key_value {
-    my ( $self, $table, $key, $value ) = @_;
+    my ( $self, $table, $key, $name ) = @_;
     my $ret = undef;
 
     confess if !defined $table;
     confess if !defined $TABLES{$table};
     confess if !defined $key;
-    __verify_value($value);
+    __verify_value_name($name);
 
     if ( defined $self->{$table}
         && defined $self->{$table}->{$key}
-        && defined $self->{$table}->{$key}->{$value}
+        && defined $self->{$table}->{$key}->{$name}
       ) {
-        $ret = $self->{$table}->{$key}->{$value};
+        $ret = $self->{$table}->{$key}->{$name};
     }
 
     $ret;
@@ -1410,17 +1659,17 @@ sub _get_table_key_value {
 #
 # -------------------------------------------------------------
 sub _get_table_value {
-    my ( $self, $table, $value ) = @_;
+    my ( $self, $table, $name ) = @_;
     my $ret = undef;
 
     confess if !defined $table;
     confess if !defined $TABLES{$table};
-    __verify_value($value);
+    __verify_value_name($name);
 
     if ( defined $self->{$table}
-        && defined $self->{$table}->{$value}
+        && defined $self->{$table}->{$name}
       ) {
-        $ret = $self->{$table}->{$value};
+        $ret = $self->{$table}->{$name};
     }
 
     $ret;
@@ -1455,9 +1704,9 @@ sub _verify_host {
 # -------------------------------------------------------------
 #
 # -------------------------------------------------------------
-sub __verify_value {
-    my ($value) = @_;
-    confess("BAD VALUE '$value'\n") if !defined $VALUES{$value};
+sub __verify_value_name {
+    my ($name) = @_;
+    confess("BAD VALUE '$name'\n") if !defined $VALUES{$name};
 }
 
 # -------------------------------------------------------------
