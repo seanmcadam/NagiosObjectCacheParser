@@ -42,6 +42,10 @@ This program monitors the Nagios Cache files, and reparses them when either the 
 	# Print a JSON formatted output
 	print $nocp->get_pretty_json;
 
+	# Print Host List
+	print join( "\n", $nocp->get_hosts() ) . "\n";
+
+
 =cut
 
 package NagiosObjectCacheParser;
@@ -1244,9 +1248,14 @@ sub get_commands {
 #
 # -------------------------------------------------------------
 
-=head2 $nocp->get_command_value()
+=head2 $nocp->get_command_value( $command, $value_name )
 
 Returns a value for the specific "command" name
+
+=head3 Command Values
+
+	$COMMAND_NAME
+	$COMMAND_LINE
 
 =cut
 
@@ -1275,9 +1284,26 @@ sub get_contacts {
 #
 # -------------------------------------------------------------
 
-=head2 $nocp->get_contact_value()
+=head2 $nocp->get_contact_value( $contact, $value_name )
 
 Returns a value for the specific "contact" name
+
+=head3 Contact Values
+
+	$ALIAS                         
+	$CAN_SUBMIT_COMMANDS           
+	$CONTACT_NAME                  
+	$EMAIL                         
+	$HOST_NOTIFICATION_COMMANDS    
+	$HOST_NOTIFICATION_OPTIONS     
+	$HOST_NOTIFICATION_PERIOD      
+	$HOST_NOTIFICATIONS_ENABLED    
+	$RETAIN_NONSTATUS_INFORMATION  
+	$RETAIN_STATUS_INFORMATION     
+	$SERVICE_NOTIFICATION_COMMANDS 
+	$SERVICE_NOTIFICATION_OPTIONS  
+	$SERVICE_NOTIFICATION_PERIOD   
+	$SERVICE_NOTIFICATIONS_ENABLED 
 
 =cut
 
@@ -1306,9 +1332,15 @@ sub get_contactgroups {
 #
 # -------------------------------------------------------------
 
-=head2 $nocp->get_contactgroup_value()
+=head2 $nocp->get_contactgroup_value( $contactgroup, $value_name )
 
 Returns a value for the specific "contactgroup" name
+
+=head3 Contact Values
+
+	$ALIAS            
+	$CONTACTGROUP_NAME
+	$MEMBERS          
 
 =cut
 
@@ -1337,9 +1369,46 @@ sub get_hosts {
 #
 # -------------------------------------------------------------
 
-=head2 $nocp->get_host_value()
+=head2 $nocp->get_host_value( $host, $value_name )
 
 Returns a value for the specific "host" name
+
+=head3 Host Values
+
+	$ACTION_URL                   
+	$ACTIVE_CHECKS_ENABLED        
+	$ADDRESS                      
+	$ALIAS                        
+	$CHECK_COMMAND                
+	$CHECK_FRESHNESS              
+	$CHECK_INTERVAL               
+	$CHECK_PERIOD                 
+	$CONTACT_GROUPS               
+	$EVENT_HANDLER_ENABLED        
+	$FAILURE_PREDICTION_ENABLED   
+	$FIRST_NOTIFICATION_DELAY     
+	$FLAP_DETECTION_ENABLED       
+	$FLAP_DETECTION_OPTIONS       
+	$FRESHNESS_THRESHOLD          
+	$HIGH_FLAP_THRESHOLD          
+	$HOST_NAME                    
+	$INITIAL_STATE                
+	$LOW_FLAP_THRESHOLD           
+	$MAX_CHECK_ATTEMPTS           
+	$NOTES                        
+	$NOTES_URL                    
+	$NOTIFICATION_INTERVAL        
+	$NOTIFICATION_OPTIONS         
+	$NOTIFICATION_PERIOD          
+	$NOTIFICATIONS_ENABLED        
+	$OBSESS_OVER_HOST             
+	$PARENTS                      
+	$PASSIVE_CHECKS_ENABLED       
+	$PROCESS_PERF_DATA            
+	$RETAIN_NONSTATUS_INFORMATION 
+	$RETAIN_STATUS_INFORMATION    
+	$RETRY_INTERVAL               
+	$STALKING_OPTIONS             
 
 =cut
 
@@ -1370,9 +1439,22 @@ sub get_hostcomments {
 #
 # -------------------------------------------------------------
 
-=head2 $nocp->get_host_hostcomment_value()
+=head2 $nocp->get_host_hostcomment_value( $host, $value_name )
 
 Returns a value for the specific "hostcomment" name
+
+=head3 Host Comment Values
+
+	$AUTHOR       
+	$COMMENT_DATA 
+	$COMMENT_ID   
+	$ENTRY_TIME   
+	$ENTRY_TYPE   
+	$EXPIRES      
+	$EXPIRE_TIME  
+	$HOST_NAME    
+	$PERSISTENT   
+	$SOURCE       
 
 =cut
 
@@ -1403,9 +1485,15 @@ sub get_hostgroups {
 #
 # -------------------------------------------------------------
 
-=head2 $nocp->get_hostgroup_value()
+=head2 $nocp->get_hostgroup_value( $hostgroup, $value_name )
 
 Returns a value for the specific "hostgroup" name
+
+=head3 Host Group Values
+
+	$ALIAS
+	$HOSTGROUP_NAME
+	$MEMBERS     
 
 =cut
 
@@ -1434,13 +1522,70 @@ sub get_hoststatuses {
 #
 # -------------------------------------------------------------
 
-=head2 $nocp->get_host_hoststatus_value()
+=head2 $nocp->get_hoststatus_value( $host, $value_name )
 
 Returns a value for the specific "hoststatus" name
 
+=head3 Host Status Values
+
+	$ACKNOWLEDGEMENT_TYPE          
+	$ACTIVE_CHECKS_ENABLED         
+	$CHECK_COMMAND                 
+	$CHECK_EXECUTION_TIME          
+	$CHECK_INTERVAL                
+	$CHECK_LATENCY                 
+	$CHECK_OPTIONS                 
+	$CHECK_PERIOD                  
+	$CHECK_TYPE                    
+	$CURRENT_ATTEMPT               
+	$CURRENT_EVENT_ID              
+	$CURRENT_NOTIFICATION_ID       
+	$CURRENT_NOTIFICATION_NUMBER   
+	$CURRENT_PROBLEM_ID            
+	$CURRENT_STATE                 
+	$EVENT_HANDLER                 
+	$EVENT_HANDLER_ENABLED         
+	$FAILURE_PREDICTION_ENABLED    
+	$FLAP_DETECTION_ENABLED        
+	$HAS_BEEN_CHECKED              
+	$HOST_NAME                     
+	$IS_FLAPPING                   
+	$LAST_CHECK                    
+	$LAST_EVENT_ID                 
+	$LAST_HARD_STATE               
+	$LAST_HARD_STATE_CHANGE        
+	$LAST_NOTIFICATION             
+	$LAST_PROBLEM_ID               
+	$LAST_STATE_CHANGE             
+	$LAST_TIME_DOWN                
+	$LAST_TIME_UNREACHABLE         
+	$LAST_TIME_UP                  
+	$LAST_UPDATE                   
+	$LONG_PLUGIN_OUTPUT            
+	$MAX_ATTEMPTS                  
+	$MODIFIED_ATTRIBUTES           
+	$NEXT_CHECK                    
+	$NEXT_NOTIFICATION             
+	$NO_MORE_NOTIFICATIONS         
+	$NOTIFICATION_PERIOD           
+	$NOTIFICATIONS_ENABLED         
+	$OBSESS_OVER_HOST              
+	$OBSESS_OVER_SERVICE           
+	$PASSIVE_CHECKS_ENABLED        
+	$PERCENT_STATE_CHANGE          
+	$PERFORMANCE_DATA              
+	$PLUGIN_OUTPUT                 
+	$PROBLEM_HAS_BEEN_ACKNOWLEDGED 
+	$PROCESS_PERFORMANCE_DATA      
+	$RETRY_INTERVAL                
+	$SCHEDULED_DOWNTIME_DEPTH      
+	$SERVICE_DESCRIPTION           
+	$SHOULD_BE_SCHEDULED           
+	$STATE_TYPE                    
+
 =cut
 
-sub get_host_hoststatus_value {
+sub get_hoststatus_value {
     my ( $self, $host, $name ) = @_;
     __verify_value_name($name);
     if ( $self->_verify_host($host) ) {
@@ -1467,9 +1612,44 @@ sub get_hostservices {
 #
 # -------------------------------------------------------------
 
-=head2 $nocp->get_host_hostservice_value()
+=head2 $nocp->get_host_hostservice_value( $host, $service, $value_name )
 
 Returns a value for the specific "hostservice" name
+
+=head3 Host Service Values
+
+	$ACTIVE_CHECKS_ENABLED        
+	$ALIAS                        
+	$CHECK_COMMAND                
+	$CHECK_FRESHNESS              
+	$CHECK_INTERVAL               
+	$CHECK_PERIOD                 
+	$CONTACT_GROUPS               
+	$EVENT_HANDLER_ENABLED        
+	$FAILURE_PREDICTION_ENABLED   
+	$FIRST_NOTIFICATION_DELAY     
+	$FLAP_DETECTION_ENABLED       
+	$FLAP_DETECTION_OPTIONS       
+	$FRESHNESS_THRESHOLD          
+	$HIGH_FLAP_THRESHOLD          
+	$HOST_NAME                    
+	$INITIAL_STATE                
+	$IS_VOLATILE                  
+	$LOW_FLAP_THRESHOLD           
+	$MAX_CHECK_ATTEMPTS           
+	$NOTIFICATION_INTERVAL        
+	$NOTIFICATION_OPTIONS         
+	$NOTIFICATION_PERIOD          
+	$NOTIFICATIONS_ENABLED        
+	$OBSESS_OVER_SERVICE          
+	$PARALLELIZE_CHECK            
+	$PASSIVE_CHECKS_ENABLED       
+	$PROCESS_PERF_DATA            
+	$RETAIN_NONSTATUS_INFORMATION 
+	$RETAIN_STATUS_INFORMATION    
+	$RETRY_INTERVAL               
+	$SERVICE_DESCRIPTION          
+	$STALKING_OPTIONS             
 
 =cut
 
@@ -1504,6 +1684,20 @@ sub get_hostservicecomments {
 
 Returns a value for the specific "hostservicecomment" name
 
+=head3 Host Service Comment Values
+
+	$AUTHOR              
+	$COMMENT_DATA        
+	$COMMENT_ID          
+	$ENTRY_TIME          
+	$ENTRY_TYPE          
+	$EXPIRES             
+	$EXPIRE_TIME         
+	$HOST_NAME           
+	$PERSISTENT          
+	$SERVICE_DESCRIPTION 
+	$SOURCE              
+
 =cut
 
 sub get_host_hostservicecomment_value {
@@ -1533,9 +1727,15 @@ sub get_servicegroups {
 #
 # -------------------------------------------------------------
 
-=head2 $nocp->get_servicegroup_value()
+=head2 $nocp->get_servicegroup_value( $servicegroup, $value_name )
 
 Returns a value for the specific "servicegroup" name
+
+=head3 Service Group Values
+
+	$ALIAS            
+	$MEMBERS          
+	$SERVICEGROUP_NAME
 
 =cut
 
@@ -1567,6 +1767,65 @@ sub get_hostservicestatuses {
 =head2 $nocp->get_host_hostservicestatuses_value()
 
 Returns a value for the specific "hostservicestatus" name
+
+=head3 Host Service Status Values
+
+	$ACKNOWLEDGEMENT_TYPE          
+	$ACTIVE_CHECKS_ENABLED         
+	$CHECK_COMMAND                 
+	$CHECK_EXECUTION_TIME          
+	$CHECK_INTERVAL                
+	$CHECK_LATENCY                 
+	$CHECK_OPTIONS                 
+	$CHECK_PERIOD                  
+	$CHECK_TYPE                    
+	$CURRENT_ATTEMPT               
+	$CURRENT_EVENT_ID              
+	$CURRENT_NOTIFICATION_ID       
+	$CURRENT_NOTIFICATION_NUMBER   
+	$CURRENT_PROBLEM_ID            
+	$CURRENT_STATE                 
+	$EVENT_HANDLER                 
+	$EVENT_HANDLER_ENABLED         
+	$FAILURE_PREDICTION_ENABLED    
+	$FLAP_DETECTION_ENABLED        
+	$HAS_BEEN_CHECKED              
+	$HOST_NAME                     
+	$IS_FLAPPING                   
+	$LAST_CHECK                    
+	$LAST_EVENT_ID                 
+	$LAST_HARD_STATE               
+	$LAST_HARD_STATE_CHANGE        
+	$LAST_NOTIFICATION             
+	$LAST_PROBLEM_ID               
+	$LAST_STATE_CHANGE             
+	$LAST_TIME_CRITICAL            
+	$LAST_TIME_DOWN                
+	$LAST_TIME_OK                  
+	$LAST_TIME_UP                  
+	$LAST_TIME_UNKNOWN             
+	$LAST_TIME_WARNING             
+	$LAST_UPDATE                   
+	$LONG_PLUGIN_OUTPUT            
+	$MAX_ATTEMPTS                  
+	$MODIFIED_ATTRIBUTES           
+	$NEXT_CHECK                    
+	$NEXT_NOTIFICATION             
+	$NO_MORE_NOTIFICATIONS         
+	$NOTIFICATION_PERIOD           
+	$NOTIFICATIONS_ENABLED         
+	$OBSESS_OVER_SERVICE           
+	$PASSIVE_CHECKS_ENABLED        
+	$PERCENT_STATE_CHANGE          
+	$PERFORMANCE_DATA              
+	$PLUGIN_OUTPUT                 
+	$PROBLEM_HAS_BEEN_ACKNOWLEDGED 
+	$PROCESS_PERFORMANCE_DATA      
+	$RETRY_INTERVAL                
+	$SCHEDULED_DOWNTIME_DEPTH      
+	$SERVICE_DESCRIPTION           
+	$SHOULD_BE_SCHEDULED           
+	$STATE_TYPE                    
 
 =cut
 
@@ -1600,6 +1859,30 @@ sub get_timepreiods {
 =head2 $nocp->get_timeperiod_value()
 
 Returns a value for the specific "timeperiod" name
+
+=head3 Timeperiod Values
+
+	$ALIAS           
+	$APRIL           
+	$AUGUST          
+	$DECEMBER        
+	$FEBUARY         
+	$FRIDAY          
+	$JANUARY         
+	$JULY            
+	$JUNE            
+	$MARCH           
+	$MAY             
+	$MONDAY          
+	$NOVEMBER        
+	$OCTOBER         
+	$SATURDAY        
+	$SEPTEMBER       
+	$SUNDAY          
+	$THURSDAY        
+	$TIMEPERIOD_NAME 
+	$TUESDAY         
+	$WEDNESDAY       
 
 =cut
 
