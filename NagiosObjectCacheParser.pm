@@ -50,7 +50,6 @@ This program monitors the Nagios Cache files, and reparses them when either the 
 
 package NagiosObjectCacheParser;
 
-#use Data::Dumper;
 use base qw( Exporter );
 use JSON;
 use Readonly;
