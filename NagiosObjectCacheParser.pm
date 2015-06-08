@@ -28,12 +28,15 @@ NagiosObjectCacheParser - Parses the Nagios Object Cache files
 
 This program monitors the Nagios Cache files, and reparses them when either the object or status files are updated. The module can return individual values and lists of values from the Nagiosn, as well as a JSON formatted list of the whole data set.  Anytime a request is made to an instance of the NOCP object the cache files are checked and reparsed if needed.
 
+The Module can be set to use IPC::Shareable which will share the parsed data across all instances of the module. This will save on parsing time when running under a web server or other multi-process version of the module.
+
 =head1 EXAMPLE
 
 	use NagiosObjectCacheParser;
 	my $nocp = new NagiosObjectCacheParser ({
-		$NAGIOS_STAT_FILE => '~/nagios.status.dat', 
-		$NAGIOS_OBJ_FILE => '~/nagios.objects.cache', 
+		$NAGIOS_STAT_FILE => '/dev/shm/nagios.status.dat', 
+		$NAGIOS_OBJ_FILE => '/dev/shm/nagios.objects.cache', 
+		$NAGIOS_LOCK_FILE => '/dev/shm/NagiosObjectCacheParser.lock', 
 	};
 	
 	# Turn on JSON sorting
@@ -51,11 +54,14 @@ This program monitors the Nagios Cache files, and reparses them when either the 
 package NagiosObjectCacheParser;
 
 use base qw( Exporter );
+use IPC::Shareable;
 use JSON;
+use Fcntl qw(:flock);
 use Readonly;
 use Carp;
 use strict;
 
+Readonly our $NAGIOS_SHARED          => 1;
 Readonly our $NAGIOS_JSON            => 'NAGIOS_JSON';
 Readonly our $NAGIOS_OBJ_FILE        => 'NAGIOS_OBJ_FILE';
 Readonly our $NAGIOS_OBJ_LINE_COUNT  => 'NAGIOS_OBJ_LINE_COUNT';
@@ -65,6 +71,8 @@ Readonly our $NAGIOS_STAT_FILE       => 'NAGIOS_STAT_FILE';
 Readonly our $NAGIOS_STAT_LINE_COUNT => 'NAGIOS_STAT_LINE_COUNT';
 Readonly our $NAGIOS_STAT_REF        => 'NAGIOS_STAT_REF';
 Readonly our $NAGIOS_STAT_TS         => 'NAGIOS_STAT_TS';
+Readonly our $NAGIOS_LOCK_FILE       => 'NAGIOS_LOCK_FILE';
+Readonly our $NAGIOS_LOCK_FH         => 'NAGIOS_LOCK_FH';
 
 Readonly our $ACTION_URL                           => 'action_url';
 Readonly our $ACKNOWLEDGEMENT_TYPE                 => 'acknowledgement_type';
@@ -1106,6 +1114,34 @@ our @EXPORT = qw(
 
 my $nagios_status_filename = '/dev/shm/nagios.status.dat';
 my $nagios_object_filename = '/dev/shm/nagios.objects.cache';
+my $nagios_lock_filename   = '/dev/shm/NagiosObjectCacheParser.lock';
+
+my %options = (
+    create    => 'yes',
+    exclusive => 0,
+    mode      => 0600,
+    destroy   => 'no',
+);
+
+my $glue_name           = 'GL';
+my $glue_count          = 0;
+my $COMMAND_GLUE        = $glue_name . $glue_count++;
+my $CONTACT_GLUE        = $glue_name . $glue_count++;
+my $CONTACTGROUP_GLUE   = $glue_name . $glue_count++;
+my $HOST_GLUE           = $glue_name . $glue_count++;
+my $HOSTGROUP_GLUE      = $glue_name . $glue_count++;
+my $SERVICE_GLUE        = $glue_name . $glue_count++;
+my $SERVICEGROUP_GLUE   = $glue_name . $glue_count++;
+my $TIMEPERIOD_GLUE     = $glue_name . $glue_count++;
+my $CONTACTSTATUS_GLUE  = $glue_name . $glue_count++;
+my $HOSTCOMMENT_GLUE    = $glue_name . $glue_count++;
+my $HOSTSTATUS_GLUE     = $glue_name . $glue_count++;
+my $INFO_GLUE           = $glue_name . $glue_count++;
+my $PROGRAMSTATUS_GLUE  = $glue_name . $glue_count++;
+my $SERVICECOMMENT_GLUE = $glue_name . $glue_count++;
+my $SERVICESTATUS_GLUE  = $glue_name . $glue_count++;
+my $OBJ_TS_GLUE         = $glue_name . $glue_count++;
+my $STAT_TS_GLUE        = $glue_name . $glue_count++;
 
 =head1 METHODS
 
@@ -1123,29 +1159,70 @@ Create a new NOCP object
 
 sub new {
     my ( $class, $parmref ) = @_;
+
+    my %COMMAND;
+    my %CONTACT;
+    my %CONTACTGROUP;
+    my %HOST;
+    my %HOSTGROUP;
+    my %SERVICE;
+    my %SERVICEGROUP;
+    my %TIMEPERIOD;
+    my %CONTACTSTATUS;
+    my %HOSTCOMMENT;
+    my %HOSTSTATUS;
+    my %INFO;
+    my %PROGRAMSTATUS;
+    my %SERVICECOMMENT;
+    my %SERVICESTATUS;
+    my $STAT_TS;
+    my $OBJ_TS;
+
+    if ($NAGIOS_SHARED) {
+        tie %COMMAND,        'IPC::Sharable', $COMMAND_GLUE,        {%options} or confess;
+        tie %CONTACT,        'IPC::Sharable', $CONTACT_GLUE,        {%options} or confess;
+        tie %CONTACTGROUP,   'IPC::Sharable', $CONTACTGROUP_GLUE,   {%options} or confess;
+        tie %HOST,           'IPC::Sharable', $HOST_GLUE,           {%options} or confess;
+        tie %HOSTGROUP,      'IPC::Sharable', $HOSTGROUP_GLUE,      {%options} or confess;
+        tie %SERVICE,        'IPC::Sharable', $SERVICE_GLUE,        {%options} or confess;
+        tie %SERVICEGROUP,   'IPC::Sharable', $SERVICEGROUP_GLUE,   {%options} or confess;
+        tie %TIMEPERIOD,     'IPC::Sharable', $TIMEPERIOD_GLUE,     {%options} or confess;
+        tie %CONTACTSTATUS,  'IPC::Sharable', $CONTACTSTATUS_GLUE,  {%options} or confess;
+        tie %HOSTCOMMENT,    'IPC::Sharable', $HOSTCOMMENT_GLUE,    {%options} or confess;
+        tie %HOSTSTATUS,     'IPC::Sharable', $HOSTSTATUS_GLUE,     {%options} or confess;
+        tie %INFO,           'IPC::Sharable', $INFO_GLUE,           {%options} or confess;
+        tie %PROGRAMSTATUS,  'IPC::Sharable', $PROGRAMSTATUS_GLUE,  {%options} or confess;
+        tie %SERVICECOMMENT, 'IPC::Sharable', $SERVICECOMMENT_GLUE, {%options} or confess;
+        tie %SERVICESTATUS,  'IPC::Sharable', $SERVICESTATUS_GLUE,  {%options} or confess;
+        tie $STAT_TS,        'IPC::Sharable', $STAT_TS_GLUE,        {%options} or confess;
+        tie $OBJ_TS,         'IPC::Sharable', $OBJ_TS_GLUE,         {%options} or confess;
+    }
+
     my $self = {
         $NAGIOS_JSON      => new JSON,
+        $NAGIOS_LOCK_FH   => 0,
         $NAGIOS_STAT_FILE => $nagios_status_filename,
         $NAGIOS_OBJ_FILE  => $nagios_object_filename,
+        $NAGIOS_LOCK_FILE => $nagios_lock_file,
         $NAGIOS_STAT_REF  => \(),
         $NAGIOS_OBJ_REF   => \(),
-        $NAGIOS_STAT_TS   => 0,
-        $NAGIOS_OBJ_TS    => 0,
-        $COMMAND          => {},
-        $CONTACT          => {},
-        $CONTACTGROUP     => {},
-        $HOST             => {},
-        $HOSTGROUP        => {},
-        $SERVICE          => {},
-        $SERVICEGROUP     => {},
-        $TIMEPERIOD       => {},
-        $CONTACTSTATUS    => {},
-        $HOSTCOMMENT      => {},
-        $HOSTSTATUS       => {},
-        $INFO             => {},
-        $PROGRAMSTATUS    => {},
-        $SERVICECOMMENT   => {},
-        $SERVICESTATUS    => {},
+        $NAGIOS_STAT_TS   => \$STAT_TS,
+        $NAGIOS_OBJ_TS    => \$OBJ_TS,
+        $COMMAND          => \%COMMAND,
+        $CONTACT          => \%CONTACT,
+        $CONTACTGROUP     => \%CONTACTGROUP,
+        $HOST             => \%HOST,
+        $HOSTGROUP        => \%HOSTGROUP,
+        $SERVICE          => \%SERVICE,
+        $SERVICEGROUP     => \%SERVICEGROUP,
+        $TIMEPERIOD       => \%TIMEPERIOD,
+        $CONTACTSTATUS    => \%CONTACTSTATUS,
+        $HOSTCOMMENT      => \%HOSTCOMMENT,
+        $HOSTSTATUS       => \%HOSTSTATUS,
+        $INFO             => \%INFO,
+        $PROGRAMSTATUS    => \%PROGRAMSTATUS,
+        $SERVICECOMMENT   => \%SERVICECOMMENT,
+        $SERVICESTATUS    => \%SERVICESTATUS,
     };
 
     if ( defined $parmref ) {
@@ -1157,11 +1234,11 @@ sub new {
         }
     }
 
+    open( $self->{NAGIOS_LOCK_FH}, "rw", $nagios_lock_filename ) || confess "Unable to open locking file '$nagios_lock_filename'\n";
+
     bless $self, $class;
 
-    $self->_get_object_file();
-    $self->_get_status_file();
-
+    $self->update();
     $self;
 }
 
@@ -1588,7 +1665,7 @@ sub get_hoststatus_value {
     my ( $self, $host, $name ) = @_;
     __verify_value_name($name);
     if ( $self->_verify_host($host) ) {
-        $self->_get_table_key_key_value( $HOSTSTATUS, $host, $name );
+        $self->_get_table_key_value( $HOSTSTATUS, $host, $name );
     }
 }
 
@@ -1904,6 +1981,8 @@ sub _get_table_key_key_value {
     confess if !defined $key2;
     __verify_value_name($name);
 
+    $self->_ro_lock();
+
     if ( defined $self->{$table}
         && defined $self->{$table}->{$key1}
         && defined $self->{$table}->{$key1}->{$key2}
@@ -1911,6 +1990,8 @@ sub _get_table_key_key_value {
       ) {
         $ret = $self->{$table}->{$key1}->{$key2}->{$name};
     }
+
+    $self->_unlock();
 
     $ret;
 }
@@ -1927,12 +2008,16 @@ sub _get_table_key_value {
     confess if !defined $key;
     __verify_value_name($name);
 
+    $self->_ro_lock();
+
     if ( defined $self->{$table}
         && defined $self->{$table}->{$key}
         && defined $self->{$table}->{$key}->{$name}
       ) {
         $ret = $self->{$table}->{$key}->{$name};
     }
+
+    $self->_unlock();
 
     $ret;
 }
@@ -1947,6 +2032,8 @@ sub _get_table_value {
     confess if !defined $table;
     confess if !defined $TABLES{$table};
     __verify_value_name($name);
+
+    $self->_ro_lock();
 
     if ( defined $self->{$table}
         && defined $self->{$table}->{$name}
@@ -1970,6 +2057,8 @@ sub _get_table_keys {
     confess if !defined $table;
     confess if !defined $TABLES{$table};
 
+    $self->_ro_lock();
+
     sort( keys( %{ $self->{$table} } ) );
 
 }
@@ -1980,6 +2069,8 @@ sub _get_table_keys {
 sub _verify_host {
     my ( $self, $host ) = @_;
     confess if !defined $host;
+    $self->_ro_lock();
+
     return ( defined $self->{$HOST}->{$host} ) ? 1 : 0;
 }
 
@@ -2023,16 +2114,24 @@ sub _get_json_vals {
 # -------------------------------------------------------------
 sub _reset_object {
     my ($self) = @_;
-    $self->{NAGIOS_OBJ_TS} = 0;
-    $self->{$COMMAND}      = {};
-    $self->{$CONTACT}      = {};
-    $self->{$CONTACTGROUP} = {};
-    $self->{$HOST}         = {};
-    $self->{$HOSTGROUP}    = {};
-    $self->{$SERVICE}      = {};
-    $self->{$SERVICEGROUP} = {};
-    $self->{$TIMEPERIOD}   = {};
+
+    $self->_rw_lock();
+
+    $$self->{NAGIOS_OBJ_TS} = 0;
+    $self->{$COMMAND}       = {};
+    $self->{$CONTACT}       = {};
+    $self->{$CONTACTGROUP}  = {};
+    $self->{$HOST}          = {};
+    $self->{$HOSTGROUP}     = {};
+    $self->{$SERVICE}       = {};
+    $self->{$SERVICEGROUP}  = {};
+    $self->{$TIMEPERIOD}    = {};
     $self->_reset_status();
+
+    # $self->_unlock(); # Unlocked from previous call
+
+    $self->{$NAGIOS_OBJ_REF} = \();
+
 }
 
 # -------------------------------------------------------------
@@ -2040,7 +2139,10 @@ sub _reset_object {
 # -------------------------------------------------------------
 sub _reset_status {
     my ($self) = @_;
-    $self->{NAGIOS_STAT_TS}  = 0;
+
+    $self->_rw_lock();
+
+    $$self->{NAGIOS_STAT_TS} = 0;
     $self->{$CONTACTSTATUS}  = {};
     $self->{$HOSTCOMMENT}    = {};
     $self->{$HOSTSTATUS}     = {};
@@ -2048,6 +2150,11 @@ sub _reset_status {
     $self->{$PROGRAMSTATUS}  = {};
     $self->{$SERVICECOMMENT} = {};
     $self->{$SERVICESTATUS}  = {};
+
+    $self->_unlock();
+
+    $self->{$NAGIOS_STAT_REF} = \();
+
 }
 
 # -------------------------------------------------------------
@@ -2058,7 +2165,8 @@ sub _update_object_file {
     my $ret = 0;
 
     my $ts = $self->_get_object_ts;
-    if ( $ts > $self->{NAGIOS_OBJ_TS} ) {
+    $self->_rw_lock();
+    if ( $ts > $$self->{NAGIOS_OBJ_TS} ) {
         $self->_get_object_file();
         $self->_get_status_file();
         $ret = 1;
@@ -2068,6 +2176,7 @@ sub _update_object_file {
         # print "NO OBJECT UPDATE NEEDED\n";
     }
 
+    $self->_unlock();
     $ret;
 }
 
@@ -2079,7 +2188,8 @@ sub _update_status_file {
     my $ret = 0;
 
     my $ts = $self->_get_object_ts;
-    if ( $ts > $self->{NAGIOS_STAT_TS} || $self->{NAGIOS_STAT_TS} < $self->{$NAGIOS_OBJ_TS} ) {
+    $self->_rw_lock();
+    if ( $ts > $$self->{NAGIOS_STAT_TS} || $$self->{NAGIOS_STAT_TS} < $$self->{$NAGIOS_OBJ_TS} ) {
         $self->_get_status_file();
         $ret = 1;
     }
@@ -2088,6 +2198,7 @@ sub _update_status_file {
         # print "NO STATUS UPDATE NEEDED\n";
     }
 
+    $self->_unlock();
     $ret;
 }
 
@@ -2127,8 +2238,8 @@ sub _get_object_file {
     $self->_reset_object;
     if ( !-f $filename ) { confess "Cannot stat file '$filename'\n"; }
     my $line_ref = $self->_get_cache_file($filename);
-    $self->{NAGIOS_OBJ_REF} = $self->_get_cache_file($filename);
-    $self->{NAGIOS_OBJ_TS}  = $self->_get_object_ts;
+    $$self->{NAGIOS_OBJ_REF} = $self->_get_cache_file($filename);
+    $$self->{NAGIOS_OBJ_TS}  = $self->_get_object_ts;
     $self->_parse_objects;
 }
 
@@ -2141,8 +2252,8 @@ sub _get_status_file {
 
     $self->_reset_status;
     if ( !-f $filename ) { confess "Cannot stat file '$filename'\n"; }
-    $self->{NAGIOS_STAT_REF} = $self->_get_cache_file($filename);
-    $self->{NAGIOS_STAT_TS}  = $self->_get_status_ts;
+    $$self->{NAGIOS_STAT_REF} = $self->_get_cache_file($filename);
+    $$self->{NAGIOS_STAT_TS}  = $self->_get_status_ts;
     $self->_parse_status;
 }
 
@@ -2385,6 +2496,33 @@ sub _parse_object {
     }
 
     \%obj;
+}
+
+# -------------------------------------------------------------
+#
+# -------------------------------------------------------------
+sub _ro_lock {
+    my ($self) = @_;
+    return if ( !$NAGIOS_SHARED );
+    flock( $self->{$NAGIOS_LOCK_FH}, LOCK_SH ) | die "Failed to get shared lock\n";
+}
+
+# -------------------------------------------------------------
+#
+# -------------------------------------------------------------
+sub _rw_lock {
+    my ($self) = @_;
+    return if ( !$NAGIOS_SHARED );
+    flock( $self->{$NAGIOS_LOCK_FH}, LOCK_EX ) | die "Failed to get exclusive lock\n";
+}
+
+# -------------------------------------------------------------
+#
+# -------------------------------------------------------------
+sub _unlock {
+    my ($self) = @_;
+    return if ( !$NAGIOS_SHARED );
+    flock( $self->{$NAGIOS_LOCK_FH}, LOCK_UN ) | die "Failed to unlock\n";
 }
 
 1;
