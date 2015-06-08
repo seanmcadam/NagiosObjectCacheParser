@@ -1203,7 +1203,7 @@ sub new {
         $NAGIOS_LOCK_FH   => 0,
         $NAGIOS_STAT_FILE => $nagios_status_filename,
         $NAGIOS_OBJ_FILE  => $nagios_object_filename,
-        $NAGIOS_LOCK_FILE => $nagios_lock_file,
+        $NAGIOS_LOCK_FILE => $nagios_lock_filename,
         $NAGIOS_STAT_REF  => \(),
         $NAGIOS_OBJ_REF   => \(),
         $NAGIOS_STAT_TS   => \$STAT_TS,
