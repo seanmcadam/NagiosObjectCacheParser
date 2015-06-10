@@ -1214,7 +1214,6 @@ sub new {
 
     if ($nagios_shared_memory) {
         __set_shared_variable( \%COMMAND,        $COMMAND_GLUE );
-        __set_shared_variable( \%COMMAND,        $COMMAND_GLUE );
         __set_shared_variable( \%CONTACT,        $CONTACT_GLUE );
         __set_shared_variable( \%CONTACTGROUP,   $CONTACTGROUP_GLUE );
         __set_shared_variable( \%HOST,           $HOST_GLUE );
@@ -2737,7 +2736,7 @@ sub __set_shared_variable {
     my $ref = ref($var_ref);
 
     $options{create}  = 'yes';
-    $options{mode}    = 0666;
+    $options{mode}    = 0660;
     $options{destroy} = 'yes';
 
     if ( $ref eq 'HASH' ) {

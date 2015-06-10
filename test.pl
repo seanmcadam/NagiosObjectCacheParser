@@ -9,11 +9,14 @@ use strict;
 # Test with some sample files in the home directory
 #
 my $n = new NagiosObjectCacheParser( { 
-	$NAGIOS_STAT_FILE => '../../nagios.status.dat', 
-	$NAGIOS_OBJ_FILE => '../../nagios.objects.cache', 
+	$NAGIOS_STAT_FILE => '/dev/shm/nagios.status.dat', 
+	$NAGIOS_OBJ_FILE => '/dev/shm/nagios.objects.cache', 
+	$NAGIOS_SHARED_MEMORY => 0,
 	});
 
+#
 # Turn on JSON sorting
+#
 $n->sort_json(1);
 
 print $n->get_pretty_json;
